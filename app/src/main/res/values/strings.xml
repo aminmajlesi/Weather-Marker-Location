@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">HamrahWeatherChalleng</string>
+
+
+    <string name="api_key">AIzaSyCbdRtsxZ7yUTFa20Nv5niFn7i9oE-0KtI</string>
+    <string name="weather_selected_status">Weather Selected Status is: %s</string>
+</resources>
