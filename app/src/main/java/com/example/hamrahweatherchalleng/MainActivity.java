@@ -35,13 +35,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private TextView textViewStatus;
     private GoogleMap gMap;
-
     private Location currentLocation;
     private FusedLocationProviderClient fusedLocationProviderClient;
     private static final int REQUEST_CODE = 101;
-
     private MainAPI mainAPI;
     private Double weatherStatus;
+    private LatLng latLng;
+    private MarkerOptions markerOptions;
+    private Call<ResponseMain> call ;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,18 +51,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         textViewStatus = findViewById(R.id.txt_weather_status);
         weatherStatus = 0.0 ;
+        textViewStatus.setText(String.format(getResources().getString(R.string.weather_selected_status),
+                new DecimalFormat("##.##").format(weatherStatus)));
 
-
-
-//        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map_fragment);
-//        if (mapFragment != null) {
-//            mapFragment.getMapAsync(this);
-//        }
-
+        mainAPI = RetrofitInstance.getRetrofit().create(MainAPI.class);
 
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
         fetchLocation();
-
 
         textViewStatus.setOnClickListener(view -> {
             textViewStatus.setText(String.format(getResources().getString(R.string.weather_selected_status),
@@ -69,8 +65,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
 
     }
-
-
 
     private void fetchLocation() {
         if (ActivityCompat.checkSelfPermission(
@@ -83,7 +77,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         task.addOnSuccessListener(location -> {
             if (location != null) {
                 currentLocation = location;
-                Toast.makeText(getApplicationContext(), currentLocation.getLatitude() + "" + currentLocation.getLongitude(), Toast.LENGTH_SHORT).show();
+                //Toast.makeText(getApplicationContext(), currentLocation.getLatitude() + "" + currentLocation.getLongitude(), Toast.LENGTH_SHORT).show();
                 SupportMapFragment supportMapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map_fragment);
                 assert supportMapFragment != null;
                 supportMapFragment.getMapAsync(MainActivity.this);
@@ -97,34 +91,27 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
 
+        googleMap.setOnMapClickListener(LatLonPoint -> {
 
-//        gMap = googleMap;
-//        LatLng myLocation = new LatLng(34.016774, 58.168308);
-//        gMap.addMarker(new
-//                MarkerOptions().position(myLocation).title("Tutorialspoint.com"));
-//        gMap.moveCamera(CameraUpdateFactory.newLatLng(myLocation));
+            latLng = LatLonPoint;
 
+            markerOptions = new MarkerOptions();
+            // Set position of marker
+            markerOptions.position(latLng);
+            // Set title of marker
+            markerOptions.title(latLng.latitude + " : " + latLng.longitude);
 
-        LatLng latLng = new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
+            call = mainAPI.getWeatherData(latLng.latitude , latLng.longitude,getResources().getString(R.string.open_weather_maps_app_id));
 
-        MarkerOptions markerOptions = new MarkerOptions().position(latLng).title("Click Me For Weather Details!!!");
+            weather();
 
-        googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 12));
-        googleMap.addMarker(markerOptions);
+            // Remove all marker
+            googleMap.clear();
+            // Animating to zoom the marker
+            googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng,10));
+            // Add marker on map
+            googleMap.addMarker(markerOptions);
 
-//        googleMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
-//            @Override
-//            public void onInfoWindowClick(Marker marker) {
-//                Intent intent = new Intent(MainActivity.this,ActivityInfoWindow.class);
-//                startActivity(intent);
-//            }
-//        });
-
-        weather();
-
-        googleMap.setOnMapClickListener(view -> {
-            textViewStatus.setText(String.format(getResources().getString(R.string.weather_selected_status),
-                    new DecimalFormat("##.##").format(weatherStatus)));
         });
 
 
@@ -134,10 +121,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private void weather() {
 
-        mainAPI = RetrofitInstance.getRetrofit().create(MainAPI.class);
-
-        Call<ResponseMain> call = mainAPI.getWeatherData(currentLocation.getLatitude() , currentLocation.getLongitude(),getResources().getString(R.string.open_weather_maps_app_id));
-        call.enqueue(new Callback<ResponseMain>() {
+         call.enqueue(new Callback<ResponseMain>() {
             @Override
             public void onResponse(Call<ResponseMain> call, Response<ResponseMain> response) {
                 if (response.isSuccessful())
@@ -158,4 +142,5 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
 
     }
+
 }
